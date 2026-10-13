@@ -749,6 +749,34 @@
     let currentQuestionIndex = 0;
     let score = 0;
     let hasAnswered = false;
+    let currentQuiz = [];
+
+    // Fisher-Yates shuffle algorithm
+    function shuffleArray(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function prepareMissionQuestions() {
+      const randomizedQuestions = quizData.map(q => {
+        const optionsWithMeta = q.options.map((opt, idx) => ({
+          text: opt,
+          isCorrect: idx === q.correct
+        }));
+        const shuffledOptions = shuffleArray(optionsWithMeta);
+        return {
+          question: q.question,
+          options: shuffledOptions.map(item => item.text),
+          correct: shuffledOptions.findIndex(item => item.isCorrect),
+          fact: q.fact
+        };
+      });
+      return shuffleArray(randomizedQuestions);
+    }
 
     const stageCurrent = document.getElementById("stageCurrent");
     const scoreCounter = document.getElementById("scoreCounter");
@@ -776,13 +804,13 @@
 
     function loadQuestion() {
       hasAnswered = false;
-      const q = quizData[currentQuestionIndex];
+      const q = currentQuiz[currentQuestionIndex];
 
       // Update header & progress
       const stageNum = String(currentQuestionIndex + 1).padStart(2, '0');
       stageCurrent.textContent = stageNum;
       scoreCounter.textContent = String(score).padStart(2, '0');
-      const progressPercent = ((currentQuestionIndex) / quizData.length) * 100;
+      const progressPercent = ((currentQuestionIndex) / currentQuiz.length) * 100;
       progressBar.style.width = `${progressPercent}%`;
 
       // Update question text
@@ -816,7 +844,7 @@
       if (hasAnswered) return;
       hasAnswered = true;
 
-      const q = quizData[currentQuestionIndex];
+      const q = currentQuiz[currentQuestionIndex];
       const isCorrect = selectedIndex === q.correct;
       const optionButtons = optionsContainer.querySelectorAll(".option-btn");
 
@@ -862,11 +890,11 @@
       });
 
       // Update progress bar to include current answer
-      const updatedProgress = ((currentQuestionIndex + 1) / quizData.length) * 100;
+      const updatedProgress = ((currentQuestionIndex + 1) / currentQuiz.length) * 100;
       progressBar.style.width = `${updatedProgress}%`;
 
       // Show next button
-      if (currentQuestionIndex < quizData.length - 1) {
+      if (currentQuestionIndex < currentQuiz.length - 1) {
         nextBtn.querySelector("span").textContent = "Next Question";
       } else {
         nextBtn.querySelector("span").textContent = "View Results";
@@ -877,7 +905,7 @@
 
     function handleNextClick() {
       currentQuestionIndex++;
-      if (currentQuestionIndex < quizData.length) {
+      if (currentQuestionIndex < currentQuiz.length) {
         loadQuestion();
       } else {
         showResults();
@@ -889,7 +917,7 @@
       resultsCard.style.display = "block";
 
       finalScore.textContent = score;
-      const accuracy = Math.round((score / quizData.length) * 100);
+      const accuracy = Math.round((score / currentQuiz.length) * 100);
       accuracyStat.textContent = `${accuracy}%`;
 
       // Celebration effect for score >= 8
@@ -956,6 +984,7 @@
     function restartQuiz() {
       currentQuestionIndex = 0;
       score = 0;
+      currentQuiz = prepareMissionQuestions();
       resultsCard.classList.remove("celebration-mode");
       confettiContainer.innerHTML = "";
       resultsCard.style.display = "none";
@@ -994,7 +1023,7 @@
     });
 
     // Initial load
-    loadQuestion();
+    restartQuiz();
   </script>
 </body>
 </html>
